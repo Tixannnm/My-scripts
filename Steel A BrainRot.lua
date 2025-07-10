@@ -85,7 +85,7 @@ end)
 if not game:GetService("RunService"):IsClient() then return end
 local script = objects["Instance3"];
 script.Parent.MouseButton1Click:Connect(function()
-    game.Players.LocalPlayer.Character:PivotTo(game.Players.LocalPlayer.Character:GetPivot() + Vector3.new(0,140,0))
+    game.Players.LocalPlayer.Character:PivotTo(game.Players.LocalPlayer.Character:GetPivot() + Vector3.new(0,160,0))
 end)
     end);
 
