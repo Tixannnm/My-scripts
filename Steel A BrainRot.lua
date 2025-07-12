@@ -23,9 +23,9 @@ do -- Set properties
     objects["Instance0"]["ZIndexBehavior"] = Enum.ZIndexBehavior.Sibling;
 
     objects["Instance1"]["BorderColor3"] = Color3.new(0, 0, 0);
-    objects["Instance1"]["Position"] = UDim2.new(0.394509792, 0, 0.369668245, 0);
+    objects["Instance1"]["Position"] = UDim2.new(0.66461128, 0, 0.427725106, 0);
     objects["Instance1"]["Parent"] = objects["Instance0"];
-    objects["Instance1"]["Size"] = UDim2.new(0.138961717, 0, 0.299739331, 0);
+    objects["Instance1"]["Size"] = UDim2.new(0.084316887, 0, 0.114905193, 0);
     objects["Instance1"]["BorderSizePixel"] = 0;
     objects["Instance1"]["BackgroundColor3"] = Color3.new(0.192157, 0.192157, 0.192157);
 
@@ -38,9 +38,9 @@ do -- Set properties
     objects["Instance2"]["Parent"] = objects["Instance1"];
     objects["Instance2"]["FontFace"] = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal);
     objects["Instance2"]["TextScaled"] = true;
-    objects["Instance2"]["Position"] = UDim2.new(0.140441746, 0, 0.181832552, 0);
+    objects["Instance2"]["Position"] = UDim2.new(0.288575947, 0, 0.181832626, 0);
     objects["Instance2"]["TextWrapped"] = true;
-    objects["Instance2"]["Size"] = UDim2.new(0.709972143, 0, 0.128978938, 0);
+    objects["Instance2"]["Size"] = UDim2.new(0.386000007, 0, 0.241999999, 0);
     objects["Instance2"]["BorderSizePixel"] = 0;
     objects["Instance2"]["BackgroundColor3"] = Color3.new(0.407843, 0.407843, 0.407843);
 
@@ -55,9 +55,9 @@ do -- Set properties
     objects["Instance4"]["Parent"] = objects["Instance1"];
     objects["Instance4"]["FontFace"] = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal);
     objects["Instance4"]["TextScaled"] = true;
-    objects["Instance4"]["Position"] = UDim2.new(0.140441746, 0, 0.604790926, 0);
+    objects["Instance4"]["Position"] = UDim2.new(0.297834337, 0, 0.625413775, 0);
     objects["Instance4"]["TextWrapped"] = true;
-    objects["Instance4"]["Size"] = UDim2.new(0.709972143, 0, 0.128978938, 0);
+    objects["Instance4"]["Size"] = UDim2.new(0.385927826, 0, 0.242404506, 0);
     objects["Instance4"]["BorderSizePixel"] = 0;
     objects["Instance4"]["BackgroundColor3"] = Color3.new(0.407843, 0.407843, 0.407843);
 
@@ -93,7 +93,7 @@ end)
 if not game:GetService("RunService"):IsClient() then return end
 local script = objects["Instance5"];
 script.Parent.MouseButton1Click:Connect(function()
-    game.Players.LocalPlayer.Character:PivotTo(game.Players.LocalPlayer.Character:GetPivot() - Vector3.new(0,140,0))
+    game.Players.LocalPlayer.Character:PivotTo(game.Players.LocalPlayer.Character:GetPivot() - Vector3.new(0,160,0))
 end)
     end);
 
