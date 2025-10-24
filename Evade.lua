@@ -14,5 +14,5 @@ while task.wait(.8) do
     local n1 = [[
     !specialround Plushie Hell
     ]]
-    game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync("\r" .. n1:gsub("\n", "\r") .. "")
+    game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync("\r" .. n1:gsub("\n", "\r"))
 end
