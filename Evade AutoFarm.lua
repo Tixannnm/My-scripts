@@ -1,16 +1,18 @@
 game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame =
     CFrame.new(0, 10000, 0)
 workspace.Gravity = 0
-while task.wait(0.5) do
+while task.wait(1) do
     local player = game:GetService('Players').LocalPlayer.Character
     for i, v in workspace.Game.Effects.Tickets:GetChildren() do
         if v.Name == 'Visual' then
             player:PivotTo(v:GetPivot())
+            workspace.Gravity = 196
             task.wait(0.1)
+            workspace.Gravity = 0
             player:PivotTo(v:GetPivot() + Vector3.new(0, 13, 0))
             task.wait(1)
             game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame =
-    CFrame.new(0, 10000, 0)
+                CFrame.new(0, 10000, 0)
         end
     end
 end
