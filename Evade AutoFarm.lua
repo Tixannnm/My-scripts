@@ -11,8 +11,19 @@ while task.wait(1) do
             workspace.Gravity = 0
             player:PivotTo(v:GetPivot() + Vector3.new(0, 13, 0))
             task.wait(1)
-            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame =
-                CFrame.new(0, 500, 0)
+            player.HumanoidRootPart.CFrame = CFrame.new(0, 500, 0)
+            task.wait(1)
+            player.HumanoidRootPart.CFrame = CFrame.new(500, 500, 0)
+            task.wait(1)
+            player.HumanoidRootPart.CFrame = CFrame.new(-500, 500, 0)
+            task.wait(1)
+            player.HumanoidRootPart.CFrame = CFrame.new(0, 500, 0)
+            task.wait(1)
+            player.HumanoidRootPart.CFrame = CFrame.new(500, 500, 0)
+            task.wait(1)
+            player.HumanoidRootPart.CFrame = CFrame.new(-500, 500, 0)
+            task.wait(1)
+            player.HumanoidRootPart.CFrame = CFrame.new(0, 500, 0)
         end
     end
 end
