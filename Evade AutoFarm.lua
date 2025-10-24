@@ -1,5 +1,5 @@
 game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame =
-    CFrame.new(0, 10000, 0)
+    CFrame.new(0, 500, 0)
 workspace.Gravity = 0
 while task.wait(1) do
     local player = game:GetService('Players').LocalPlayer.Character
@@ -12,7 +12,7 @@ while task.wait(1) do
             player:PivotTo(v:GetPivot() + Vector3.new(0, 13, 0))
             task.wait(1)
             game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame =
-                CFrame.new(0, 10000, 0)
+                CFrame.new(0, 500, 0)
         end
     end
 end
