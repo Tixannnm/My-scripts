@@ -6,7 +6,7 @@ while task.wait(0.5) do
     for i, v in workspace.Game.Effects.Tickets:GetChildren() do
         if v.Name == 'Visual' then
             player:PivotTo(v:GetPivot())
-            task.wait(0.3)
+            task.wait(0.1)
             player:PivotTo(v:GetPivot() + Vector3.new(0, 13, 0))
             task.wait(1)
             game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame =
