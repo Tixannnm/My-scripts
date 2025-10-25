@@ -6,7 +6,6 @@ while task.wait(1) do
     local pos2 = CFrame.new(500, 150, 0)
     local pos3 = CFrame.new(-500, 400, 0)
     hrp.CFrame = pos1
-    hrp.CFrame = pos1
     if player then
         for i, v in workspace.Game.Effects.Tickets:GetChildren() do
             if v.Name == 'Visual' then
