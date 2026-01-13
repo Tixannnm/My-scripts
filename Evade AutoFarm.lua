@@ -1,4 +1,3 @@
-
 local SAFE_ZONE = Vector3.new(0, 500, 0)
 local BOT_RADIUS = 25              
 local STUCK_TIME_LIMIT = 10        
@@ -7,6 +6,7 @@ local TOUCH_DELAY = 0.05
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local workspace = game:GetService("Workspace")
+local VirtualUser = game:GetService("VirtualUser")
 
 local player = Players.LocalPlayer
 local myName = player.Name
@@ -17,6 +17,10 @@ local lastMoveTime = os.time()
 local currentPlatform = nil
 local defaultGravity = workspace.Gravity
 
+player.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+end)
 
 local function isPlayerInActiveGame()
     local gameFolder = workspace:FindFirstChild("Game")
@@ -35,7 +39,6 @@ Players.PlayerAdded:Connect(updateIgnoreList)
 Players.PlayerRemoving:Connect(updateIgnoreList)
 updateIgnoreList()
 
-
 local function createPlatform(pos)
     if currentPlatform then currentPlatform:Destroy() end
     local p = Instance.new("Part")
@@ -43,7 +46,7 @@ local function createPlatform(pos)
     p.Size = Vector3.new(12, 1, 12)
     p.Anchored = true
     p.CanCollide = true
-    p.Transparency = 0.5 
+    p.Transparency = 1 
     p.CFrame = CFrame.new(pos)
     p.Parent = workspace
     currentPlatform = p
@@ -53,14 +56,10 @@ end
 task.spawn(function()
     while true do
         RunService.Heartbeat:Wait()
-        
-
         if not isPlayerInActiveGame() then continue end
-
         local char = player.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then continue end
-
         local gamePlayersFolder = workspace.Game.Players
         local botFound = false
         for _, obj in ipairs(gamePlayersFolder:GetChildren()) do
@@ -72,7 +71,6 @@ task.spawn(function()
                 end
             end
         end
-
         if botFound then
             workspace.Gravity = 0
             if currentPlatform then currentPlatform:Destroy() end
@@ -85,7 +83,6 @@ task.spawn(function()
     end
 end)
 
-
 RunService.Stepped:Connect(function()
     if player.Character and isPlayerInActiveGame() then
         for _, part in ipairs(player.Character:GetDescendants()) do
@@ -96,21 +93,17 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-
 while true do
     RunService.Heartbeat:Wait()
-
     if not isPlayerInActiveGame() then
         if currentPlatform then currentPlatform:Destroy() currentPlatform = nil end
-        lastMoveTime = os.time() 
+        lastMoveTime = os.time()
         task.wait(1)
         continue 
     end
-
     local character = player.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
     if not hrp then continue end
-
     local ticketsFolder = workspace.Game.Effects:FindFirstChild("Tickets")
     local currentTicket = nil
     if ticketsFolder then
@@ -121,20 +114,15 @@ while true do
             end
         end
     end
-
     if currentTicket then
         lastTicket = currentTicket
-        local ticketPos = currentTicket:GetPivot().Position
-
-        character:PivotTo(CFrame.new(ticketPos))
+        character:PivotTo(CFrame.new(currentTicket:GetPivot().Position))
         task.wait(TOUCH_DELAY)
-        
         lastMoveTime = os.time()
         lastPos = hrp.Position
     else
         lastTicket = nil
     end
-
     if (hrp.Position - lastPos).Magnitude > 2 then
         lastPos = hrp.Position
         lastMoveTime = os.time()
