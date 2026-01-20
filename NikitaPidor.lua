@@ -6,6 +6,7 @@ local function a()
     local character = lp.Character or lp.CharacterAdded:Wait()
     local rootPart = character:WaitForChild("HumanoidRootPart")
 
+    -- Ссылка на аттачмент игрока
     local playerAttach = rootPart:FindFirstChild("FruitTracerAttachment")
     if not playerAttach then
         playerAttach = Instance.new("Attachment")
@@ -13,39 +14,45 @@ local function a()
         playerAttach.Parent = rootPart
     end
 
-    for _, v in pairs(workspace:GetChildren()) do
-        -- Ищем объекты, в названии которых есть "Fruit" и которые еще не обработаны
+    local fruitsFound = 0
+    local allChildren = workspace:GetChildren()
+
+    -- Считаем количество фруктов
+    for _, v in pairs(allChildren) do
+        if string.find(v.Name, "Fruit") then
+            fruitsFound = fruitsFound + 1
+        end
+    end
+
+    -- ЛОГИКА "НИЧЕГО НЕ НАЙДЕНО"
+    if fruitsFound == 0 then
+        -- Проверяем, нет ли уже такого сообщения, чтобы не спамить
+        if not game:GetService("CoreGui"):FindFirstChild("NoFruitsGui") then
+            local sg = Instance.new("ScreenGui")
+            sg.Name = "NoFruitsGui"
+            sg.Parent = game:GetService("CoreGui")
+            
+            local label = Instance.new("TextLabel")
+            label.Parent = sg
+            label.Size = UDim2.new(0, 378, 0, 170)
+            label.Position = UDim2.new(0.5, -189, 0.4, -85) -- Центр экрана
+            label.BackgroundTransparency = 1
+            label.Text = "No fruits found"
+            label.TextColor3 = Color3.new(1, 0, 0) -- Сделал красным для заметности
+            label.TextScaled = true
+            label.FontFace = Font.new("rbxasset://fonts/families/Bangers.json")
+            
+            -- Удаляем сообщение через 3 секунды
+            task.delay(3, function()
+                sg:Destroy()
+            end)
+        end
+        return -- Выходим из функции, так как фруктов нет
+    end
+
+    -- ОСНОВНОЙ ЦИКЛ (если фрукты найдены)
+    for _, v in pairs(allChildren) do
         if string.find(v.Name, "Fruit") and not v:FindFirstChild("FruitTracer") then
-            if not v then
-                local parent = game:GetService("CoreGui");
-                local objects = {
-                    ["Instance0"] = Instance.new("ScreenGui");
-                    ["Instance1"] = Instance.new("TextLabel"); 
-                };
-
-                do 
-                    objects["Instance0"]["Parent"] = parent;
-                    objects["Instance0"]["ZIndexBehavior"] = Enum.ZIndexBehavior.Sibling;
-
-                    objects["Instance1"]["FontSize"] = Enum.FontSize.Size14;
-                    objects["Instance1"]["TextWrapped"] = true;
-                    objects["Instance1"]["TextColor3"] = Color3.new(0, 0, 0);
-                    objects["Instance1"]["Parent"] = objects["Instance0"];
-                    objects["Instance1"]["Text"] = "no fruits found";
-                    objects["Instance1"]["TextSize"] = 14;
-                    objects["Instance1"]["BackgroundColor3"] = Color3.new(1, 1, 1);
-                    objects["Instance1"]["BorderColor3"] = Color3.new(0, 0, 0);
-                    objects["Instance1"]["Size"] = UDim2.new(0, 378, 0, 170);
-                    objects["Instance1"]["BackgroundTransparency"] = 1;
-                    objects["Instance1"]["Position"] = UDim2.new(0.386415094, 0, 0.362149537, 0);
-                    objects["Instance1"]["FontFace"] = Font.new("rbxasset://fonts/families/Bangers.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal);
-                    objects["Instance1"]["TextScaled"] = true;
-                    objects["Instance1"]["BorderSizePixel"] = 0;
-                    objects["Instance1"]["TextWrap"] = true;
-                end;
-
-                local obj = objects["Instance0"];
-            end
             -- 1. Создание GUI
             local bill = Instance.new("BillboardGui")
             bill.Name = "BillboardGui"
@@ -60,40 +67,35 @@ local function a()
             label.Size = UDim2.new(1, 0, 1, 0)
             label.TextColor3 = Color3.fromRGB(255, 0, 0)
             label.TextScaled = true
-            label.Text = v.Name .. " [0m]" -- Начальный текст
+            label.Text = v.Name
 
-            -- 2. Подсветка (Highlight)
+            -- 2. Подсветка
             local high = Instance.new("Highlight")
             high.Parent = v:FindFirstChild("Fruit") or v
 
-            -- 3. Создание Трассера (Beam)
-            local targetPart = (v:IsA("BasePart") and v) or v:FindFirstChildWhichIsA("BasePart") or v:FindFirstChild("Fruit")
+            -- 3. Трассер и дистанция
+            local targetPart = v:IsA("BasePart") and v or v:FindFirstChildWhichIsA("BasePart") or v:FindFirstChild("Fruit")
             if targetPart then
-                local fruitAttach = Instance.new("Attachment")
-                fruitAttach.Name = "FruitAttachment"
-                fruitAttach.Parent = targetPart
+                local fAttach = Instance.new("Attachment", targetPart)
+                fAttach.Name = "FruitAttachment"
 
                 local beam = Instance.new("Beam")
                 beam.Name = "FruitTracer"
                 beam.Attachment0 = playerAttach
-                beam.Attachment1 = fruitAttach
-                beam.Width0 = 0.1
-                beam.Width1 = 0.1
-                beam.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
+                beam.Attachment1 = fAttach
+                beam.Width0, beam.Width1 = 0.1, 0.1
+                beam.Color = ColorSequence.new(Color3.new(1, 0, 0))
                 beam.FaceCamera = true
                 beam.Parent = v
 
-                -- 4. ЦИКЛ ОБНОВЛЕНИЯ ДИСТАНЦИИ
-                -- Запускаем отдельный поток для каждого фрукта, чтобы обновлять метры
+                -- Обновление дистанции
                 task.spawn(function()
                     while v.Parent and targetPart.Parent do
                         if rootPart and targetPart then
-                            -- Вычисляем дистанцию (в стадах/блоках)
-                            local distance = (rootPart.Position - targetPart.Position).Magnitude
-                            -- Обновляем текст (округляем до целого)
-                            label.Text = v.Name .. "\n[" .. math.floor(distance) .. " m]"
+                            local dist = (rootPart.Position - targetPart.Position).Magnitude
+                            label.Text = v.Name .. "\n[" .. math.floor(dist) .. " m]"
                         end
-                        task.wait(0.1) -- Обновляем 10 раз в секунду для плавности
+                        task.wait(0.2)
                     end
                 end)
             end
@@ -104,10 +106,10 @@ end
 -- Запуск
 a()
 
--- Слушатель новых фруктов
+-- Слежка за новыми объектами
 workspace.ChildAdded:Connect(function(child)
-    task.wait(0.5)
     if string.find(child.Name, "Fruit") then
+        task.wait(0.5)
         a()
     end
 end)
