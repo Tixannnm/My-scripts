@@ -128,7 +128,7 @@ while true do
         lastMoveTime = os.time()
     elseif os.time() - lastMoveTime > STUCK_TIME_LIMIT then
         createPlatform(SAFE_ZONE - Vector3.new(0, 1, 0))
-        character:PivotTo(CFrame.new(SAFE_ZONE))
+        character:PivotTo(CFrame.new(SAFE_ZONE)) workspace.Gravity = 0
         lastMoveTime = os.time()
     end
 end
