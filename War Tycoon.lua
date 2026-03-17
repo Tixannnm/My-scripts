@@ -87,6 +87,7 @@ end
 -- Основной цикл
 task.spawn(function()
     while isRunning do
+        -- ОБРАБОТКА ИГРОКОВ
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= localPlayer and player.Character then
                 local char = player.Character
@@ -102,26 +103,19 @@ task.spawn(function()
                         createHitboxEsp(head, color)
                         createNameTag(head, nameText, color)
                     else
-                        -- ПРИМЕНЯЕМ ХИТБОКС
                         local targetSize = Vector3.new(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE)
-                        
                         if head.Size ~= targetSize then
                             head.Size = targetSize
                             head.Transparency = 1
-                            
-                            -- КРИТИЧЕСКИЕ НАСТРОЙКИ ДЛЯ АНТИ-ЗАСТРЕВАНИЯ:
                             head.CanCollide = false
                             head.CanTouch = false
                             head.CanQuery = true
                             head.Massless = true
                             head.CastShadow = false
                         end
-                        
-                        -- Дополнительная защита: держим скорость сборки, чтобы физика не тупила
                         if head.AssemblyLinearVelocity.Magnitude > 0 then
                             head.AssemblyLinearVelocity = Vector3.new(0,0,0)
                         end
-
                         createHitboxEsp(head, color)
                         createNameTag(head, nameText, color)
                     end
@@ -131,21 +125,40 @@ task.spawn(function()
             end
         end
 
-        -- Дроны
+        -- ОБРАБОТКА ДРОНОВ (Исправлено)
         local droneFolder = Workspace:FindFirstChild("Game Systems") and Workspace["Game Systems"]:FindFirstChild("Drone Workspace")
         if droneFolder then
             for _, drone in pairs(droneFolder:GetChildren()) do
+                -- Если дрон помечен как уничтоженный в атрибутах, убираем эффекты
+                if drone:GetAttribute("Destroyed") == true then
+                    removeAllEffects(drone)
+                    continue
+                end
+
                 local body = drone:FindFirstChild("Engine") or drone:FindFirstChild("Body") or drone:FindFirstChildOfClass("BasePart")
                 if body then
-                    local owner = drone:GetAttribute("Owner") or "Unknown"
-                    createHitboxEsp(body, Color3.fromRGB(255, 0, 0), Vector3.new(3, 3, 3))
-                    createNameTag(body, "[DRONE] " .. owner, Color3.fromRGB(255, 0, 0))
+                    local ownerName = drone:GetAttribute("Owner") or "Unknown"
+                    local ownerObj = Players:FindFirstChild(ownerName)
+                    
+                    local displayColor = Color3.fromRGB(255, 0, 0) -- По умолчанию красный (враг)
+                    local teamSuffix = "[No Team]"
+
+                    if ownerObj then
+                        teamSuffix = "[" .. (ownerObj.Team and ownerObj.Team.Name or "No Team") .. "]"
+                        -- Если дрон твой или союзный — меняем цвет на командный
+                        if ownerObj.Team == localPlayer.Team then
+                            displayColor = ownerObj.TeamColor.Color
+                        end
+                    end
+
+                    createHitboxEsp(body, displayColor, Vector3.new(3, 3, 3))
+                    createNameTag(body, "[DRONE] " .. ownerName .. " " .. teamSuffix, displayColor)
                 end
             end
         end
 
         task.wait(0.2)
     end
-    -- Финальная очистка
-    for _, player in pairs(Players:GetPlayers()) do if player.Character then removeAllEffects(player.Character) end end
+    -- Очистка при остановке
+    globalCleanup() 
 end)
