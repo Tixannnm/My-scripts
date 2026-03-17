@@ -4,7 +4,8 @@ local LogService = game:GetService("LogService")
 local localPlayer = Players.LocalPlayer
 
 -- ================= [ НАСТРОЙКИ ] =================
-local HITBOX_SIZE = 100 -- Укажи нужный размер хитбокса здесь
+-- Если в лоадстринге указали _G.HitboxSize, берем его, иначе 25
+local HITBOX_SIZE = _G.HitboxSize or 25 
 -- =================================================
 
 -- === ЗАЩИТА ОТ ДУБЛИРОВАНИЯ ===
@@ -30,14 +31,26 @@ currentSignal.AncestryChanged:Connect(function()
 end)
 -- ===============================
 
+-- Базовый вайтлист + тот, что ты можешь передать через _G.WhiteList
 local whiteList = {
     "nikita_031298",
     "Flamiwet"
 }
 
+-- Объединяем с внешним вайтлистом, если он есть
+if _G.WhiteList and type(_G.WhiteList) == "table" then
+    for _, name in pairs(_G.WhiteList) do
+        table.insert(whiteList, name)
+    end
+end
+
 local function isWhiteListed(playerObj, modelName)
     for _, whiteName in pairs(whiteList) do
         if modelName == whiteName then return true end
+    end
+    -- Авто-вайтлист союзников по команде
+    if playerObj and playerObj:IsA("Player") and playerObj.Team == localPlayer.Team then
+        return true
     end
     return false
 end
@@ -60,10 +73,11 @@ local function globalCleanup()
         end
         if obj:IsA("Model") and obj:FindFirstChild("Head") then
             local h = obj.Head
-            -- Сбрасываем размер, если он совпадает с установленным HITBOX_SIZE
-            if h.Size == Vector3.new(HITBOX_SIZE, HITBOX_SIZE, HITBOX_SIZE) then
+            -- Сбрасываем только если голова была изменена (прозрачная)
+            if h.Transparency == 1 then
                 h.Size = Vector3.new(1.2, 1, 1)
                 h.Transparency = 0
+                h.CanCollide = true
             end
         end
     end
@@ -90,7 +104,11 @@ local function createNameTag(targetPart, name, color)
 end
 
 local function createHitboxEsp(part, color)
-    if part:FindFirstChild("HitboxEsp") then return end
+    local existing = part:FindFirstChild("HitboxEsp")
+    if existing then 
+        existing.Size = part.Size
+        return 
+    end
     local box = Instance.new("BoxHandleAdornment")
     box.Name = "HitboxEsp"
     box.Adornee = part
@@ -156,6 +174,5 @@ task.spawn(function()
         end
         task.wait(0.2)
     end
-    -- Если цикл прерван, чистим за собой
     globalCleanup()
 end)
