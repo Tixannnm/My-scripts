@@ -4,97 +4,66 @@ local LogService = game:GetService("LogService")
 local localPlayer = Players.LocalPlayer
 
 -- ================= [ НАСТРОЙКИ ] =================
--- Берем размер из _G, если он там есть, иначе ставим 25 по умолчанию
-local HITBOX_SIZE = _G.HitboxSize or 25
-local TARGET_VECTOR = Vector3.new(HITBOX_SIZE, HITBOX_SIZE, HITBOX_SIZE)
+local HITBOX_VAL = _G.HitboxSize or 10
+local TARGET_VECTOR = Vector3.new(HITBOX_VAL, HITBOX_VAL, HITBOX_VAL)
+local DEFAULT_VECTOR = Vector3.new(1.2, 1, 1) -- Стандартный размер головы
 -- =================================================
 
--- === ЗАЩИТА ОТ ДУБЛИРОВАНИЯ ===
-local scriptId = "NoriHitboxSystem_v2"
+local scriptId = "One Tap"
 
 local oldSignal = LogService:FindFirstChild(scriptId)
-if oldSignal then
-    oldSignal:Destroy() 
-    task.wait(0.3) 
-end
+if oldSignal then oldSignal:Destroy() task.wait(0.2) end
 
-local currentSignal = Instance.new("BindableEvent")
+local currentSignal = Instance.new("BindableEvent", LogService)
 currentSignal.Name = scriptId
-currentSignal.Parent = LogService
 
 local isRunning = true
 currentSignal.AncestryChanged:Connect(function()
-    if not currentSignal:IsDescendantOf(game) then
-        isRunning = false 
-    end
+    if not currentSignal:IsDescendantOf(game) then isRunning = false end
 end)
--- ===============================
 
-local whiteList = {
-    "nikita_031298",
-    "Flamiwet"
-}
-
--- Добавляем внешние ники из лоадстринг-настроек
+local whiteList = {"nikita_031298", "Flamiwet"}
 if _G.WhiteList and type(_G.WhiteList) == "table" then
-    for _, name in pairs(_G.WhiteList) do
-        table.insert(whiteList, name)
-    end
+    for _, name in pairs(_G.WhiteList) do table.insert(whiteList, name) end
 end
 
-local function isWhiteListed(playerObj, modelName)
-    for _, whiteName in pairs(whiteList) do
-        if modelName == whiteName then return true end
-    end
-    -- Авто-вайтлист союзников
-    if playerObj and playerObj:IsA("Player") and playerObj.Team == localPlayer.Team then
-        return true
+local function isWhiteListed(model)
+    if not model or model == localPlayer.Character then return true end
+    for _, name in pairs(whiteList) do
+        if model.Name == name then return true end
     end
     return false
 end
 
+-- Очистка хитбокса после смерти или для вайтлиста
 local function removeEffects(model)
     local head = model:FindFirstChild("Head")
     if head then
         if head:FindFirstChild("HitboxEsp") then head.HitboxEsp:Destroy() end
         if head:FindFirstChild("NameEsp") then head.NameEsp:Destroy() end
+        head.Size = DEFAULT_VECTOR
         head.Transparency = 0
-        head.Size = Vector3.new(1.2, 1, 1)
         head.CanCollide = true
     end
 end
 
--- Полная очистка всего Workspace от следов скрипта
-local function globalCleanup()
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        if obj.Name == "HitboxEsp" or obj.Name == "NameEsp" then
-            obj:Destroy()
-        end
-        if obj:IsA("Model") and obj:FindFirstChild("Head") then
-            local h = obj.Head
-            -- Сбрасываем голову, если она явно изменена скриптом (прозрачная или огромная)
-            if h.Transparency == 1 or h.Size.Y > 2 then
-                h.Size = Vector3.new(1.2, 1, 1)
-                h.Transparency = 0
-                h.CanCollide = true
-            end
-        end
-    end
-end
-
 local function createNameTag(targetPart, name, color)
-    if not targetPart or targetPart:FindFirstChild("NameEsp") then return end
-    local bill = Instance.new("BillboardGui")
+    local tag = targetPart:FindFirstChild("NameEsp")
+    if tag then 
+        tag.TextLabel.TextColor3 = color
+        tag.TextLabel.Text = name
+        return 
+    end
+    
+    local bill = Instance.new("BillboardGui", targetPart)
     bill.Name = "NameEsp"
-    bill.Adornee = targetPart
-    bill.Size = UDim2.new(0, 200, 0, 50)
-    bill.StudsOffset = Vector3.new(0, 10, 0)
     bill.AlwaysOnTop = true
-    bill.Parent = targetPart
-    local label = Instance.new("TextLabel")
-    label.Parent = bill
-    label.BackgroundTransparency = 1
+    bill.Size = UDim2.new(0, 200, 0, 50)
+    bill.StudsOffset = Vector3.new(0, HITBOX_VAL / 2 + 2, 0)
+    
+    local label = Instance.new("TextLabel", bill)
     label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
     label.Text = name
     label.TextColor3 = color
     label.TextStrokeTransparency = 0
@@ -102,75 +71,75 @@ local function createNameTag(targetPart, name, color)
     label.Font = Enum.Font.SourceSansBold
 end
 
-local function createHitboxEsp(part, color)
-    local existing = part:FindFirstChild("HitboxEsp")
-    if existing then 
-        existing.Size = part.Size
-        return 
-    end
-    local box = Instance.new("BoxHandleAdornment")
-    box.Name = "HitboxEsp"
-    box.Adornee = part
-    box.AlwaysOnTop = true
-    box.ZIndex = 10
-    box.Color3 = color
-    box.Transparency = 0.6
-    box.Size = part.Size
-    box.Parent = part
-end
-
-local function processModel(model)
-    if not isRunning or not model:IsA("Model") or model == localPlayer.Character then return end
-    local hum = model:FindFirstChildOfClass("Humanoid")
-    local head = model:FindFirstChild("Head")
+local function applyHitbox(model)
+    if not isRunning or isWhiteListed(model) then return end
     
-    if hum and head then
-        local playerObj = Players:GetPlayerFromCharacter(model) or Players:FindFirstChild(model.Name)
-        
-        if isWhiteListed(playerObj, model.Name) then
-            removeEffects(model)
-            return
-        end
-
+    local head = model:FindFirstChild("Head")
+    local hum = model:FindFirstChildOfClass("Humanoid")
+    
+    if head and hum then
         if hum.Health > 0 then
-            local targetColor
-            local displayName
-            if playerObj and playerObj:IsA("Player") then
-                targetColor = playerObj.TeamColor.Color
-                local teamName = playerObj.Team and playerObj.Team.Name or "No Team"
-                displayName = playerObj.Name .. " [" .. teamName .. "]"
-            else
-                targetColor = Color3.fromRGB(255, 170, 0)
-                displayName = "[BOT] " .. model.Name
-            end
-
+            -- ПРИМЕНЯЕМ ХИТБОКС
             if head.Size ~= TARGET_VECTOR then
                 head.Size = TARGET_VECTOR
                 head.Transparency = 1
                 head.CanCollide = false
                 head.Massless = true
             end
-            createHitboxEsp(head, targetColor)
+            
+            local playerObj = Players:GetPlayerFromCharacter(model)
+            local targetColor, displayName
+            
+            if playerObj then
+                targetColor = playerObj.TeamColor.Color
+                displayName = playerObj.Name .. " [" .. (playerObj.Team and playerObj.Team.Name or "No Team") .. "]"
+            else
+                targetColor = Color3.fromRGB(255, 120, 0)
+                displayName = "[BOT] " .. model.Name
+            end
+
+            local box = head:FindFirstChild("HitboxEsp")
+            if not box then
+                box = Instance.new("BoxHandleAdornment", head)
+                box.Name = "HitboxEsp"
+                box.Adornee = head
+                box.AlwaysOnTop = true
+                box.ZIndex = 10
+                box.Transparency = 0.6
+            end
+            box.Size = TARGET_VECTOR
+            box.Color3 = targetColor
+            
             createNameTag(head, displayName, targetColor)
         else
+            -- УДАЛЯЕМ ХИТБОКС (если мертв)
             removeEffects(model)
         end
     end
 end
 
-globalCleanup()
+-- Рекурсивный поиск ботов
+local function scanForBots(root)
+    for _, obj in pairs(root:GetChildren()) do
+        if obj:IsA("Model") then
+            if obj:FindFirstChild("Head") and obj:FindFirstChildOfClass("Humanoid") then
+                applyHitbox(obj)
+            end
+        elseif obj:IsA("Folder") then
+            scanForBots(obj)
+        end
+    end
+end
 
+-- Цикл
 task.spawn(function()
     while isRunning do
-        -- Проверка реальных игроков
-        for _, player in pairs(Players:GetPlayers()) do
-            if player.Character then processModel(player.Character) end
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character then applyHitbox(p.Character) end
         end
-        -- Проверка Workspace для NPC и тех, кто не в Players
-        for _, obj in pairs(Workspace:GetChildren()) do
-            processModel(obj)
-        end
+        scanForBots(Workspace)
         task.wait(0.2)
     end
-    globalCleanup()
+    -- Финальная очистка при выключении скрипта
+    for _, p in pairs(Players:GetPlayers()) do if p.Character then removeEffects(p.Character) end end
 end)
