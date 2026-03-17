@@ -34,7 +34,6 @@ if _G.WhiteList and type(_G.WhiteList) == "table" then
     end
 end
 
--- Проверка на вайтлист (друзья или команда)
 local function isWhiteListed(playerObj)
     for _, whiteName in pairs(whiteList) do
         if playerObj.Name == whiteName then return true end
@@ -52,16 +51,19 @@ local function resetPhysics(character)
         head.Size = Vector3.new(1.2, 1, 1)
         head.Transparency = 0
         head.CanCollide = true
+        head.CanTouch = true
+        head.CanQuery = true
     end
     local arm = character:FindFirstChild("RightUpperArm") or character:FindFirstChild("Right Arm")
     if arm then
         arm.Size = Vector3.new(1, 2, 1)
         arm.Transparency = 0
         arm.CanCollide = true
+        arm.CanTouch = true
+        arm.CanQuery = true
     end
 end
 
--- Удаление ESP и тегов
 local function removeAllEffects(model)
     if Players:GetPlayerFromCharacter(model) then
         resetPhysics(model)
@@ -73,12 +75,10 @@ local function removeAllEffects(model)
     end
 end
 
--- Очистка всего при выключении
 local function globalCleanup()
     for _, player in pairs(Players:GetPlayers()) do
         if player.Character then removeAllEffects(player.Character) end
     end
-    -- Очистка папки дронов
     local droneFolder = Workspace:FindFirstChild("Game Systems") and Workspace["Game Systems"]:FindFirstChild("Drone Workspace")
     if droneFolder then
         for _, drone in pairs(droneFolder:GetChildren()) do
@@ -87,7 +87,6 @@ local function globalCleanup()
     end
 end
 
--- Создание текста над объектом (Игрок или Дрон)
 local function createNameTag(target, text, color, offset)
     local tag = target:FindFirstChild("NameEsp")
     if tag then 
@@ -113,7 +112,6 @@ local function createNameTag(target, text, color, offset)
     label.Font = Enum.Font.SourceSansBold
 end
 
--- Создание цветного бокса
 local function createHitboxEsp(part, color, size)
     local box = part:FindFirstChild("HitboxEsp")
     if not box then
@@ -128,29 +126,31 @@ local function createHitboxEsp(part, color, size)
     box.Color3 = color
 end
 
--- ФУНКЦИЯ ОБРАБОТКИ ДРОНОВ
 local function processDrones()
     local droneFolder = Workspace:FindFirstChild("Game Systems") and Workspace["Game Systems"]:FindFirstChild("Drone Workspace")
     if not droneFolder then return end
 
     for _, drone in pairs(droneFolder:GetChildren()) do
-        -- Основная часть дрона для ESP
+        if drone:GetAttribute("Destroyed") == true then 
+            removeAllEffects(drone)
+            continue 
+        end
+
         local body = drone:FindFirstChild("Engine") or drone:FindFirstChild("Body") or drone:FindFirstChildOfClass("BasePart")
         if body then
             local ownerName = drone:GetAttribute("Owner") or "Unknown"
             local ownerObj = Players:FindFirstChild(ownerName)
             
             local teamName = "No Team"
-            local displayColor = Color3.fromRGB(255, 0, 0) -- Красный для вражеских по умолчанию
+            local displayColor = Color3.fromRGB(255, 0, 0)
 
             if ownerObj then
                 teamName = ownerObj.Team and ownerObj.Team.Name or "No Team"
                 displayColor = ownerObj.TeamColor.Color
-                -- Если дрон союзный — он будет подсвечен цветом команды (обычно зеленым)
             end
 
             local infoText = "[DRONE] " .. ownerName .. " [" .. teamName .. "]"
-            createHitboxEsp(body, displayColor, Vector3.new(3, 3, 3)) -- Размер бокса дрона 3х3х3
+            createHitboxEsp(body, displayColor, Vector3.new(3, 3, 3))
             createNameTag(body, infoText, displayColor, 3)
         end
     end
@@ -160,7 +160,6 @@ globalCleanup()
 
 task.spawn(function()
     while isRunning do
-        -- Обработка игроков
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= localPlayer and player.Character then
                 local char = player.Character
@@ -177,12 +176,15 @@ task.spawn(function()
                         createHitboxEsp(head, color)
                         createNameTag(head, displayName, color)
                     else
-                        -- Враги: Увеличиваем хитбокс
+                        -- ИСПРАВЛЕНИЕ: Отключаем физическое взаимодействие
                         local targetHeadSize = Vector3.new(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE)
                         if head.Size ~= targetHeadSize then
                             head.Size = targetHeadSize
                             head.Transparency = 1
-                            head.CanCollide = false
+                            head.CanCollide = false -- Не сталкивается с блоками
+                            head.CanTouch = false   -- Не активирует триггеры
+                            head.CanQuery = true    -- НО ПУЛИ ВСЁ ЕЩЁ ПОПАДАЮТ
+                            head.Massless = true
                         end
                         createHitboxEsp(head, color)
                         createNameTag(head, displayName, color)
@@ -193,6 +195,9 @@ task.spawn(function()
                                 arm.Size = targetArmSize
                                 arm.Transparency = 1
                                 arm.CanCollide = false
+                                arm.CanTouch = false
+                                arm.CanQuery = true
+                                arm.Massless = true
                             end
                             createHitboxEsp(arm, color)
                         end
@@ -203,9 +208,7 @@ task.spawn(function()
             end
         end
 
-        -- Обработка дронов
         processDrones()
-
         task.wait(0.3)
     end
     globalCleanup()
