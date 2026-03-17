@@ -4,21 +4,20 @@ local LogService = game:GetService("LogService")
 local localPlayer = Players.LocalPlayer
 
 -- ================= [ НАСТРОЙКИ ] =================
--- Если в лоадстринге указали _G.HitboxSize, берем его, иначе 25
-local HITBOX_SIZE = _G.HitboxSize or 25 
+-- Берем размер из _G, если он там есть, иначе ставим 25 по умолчанию
+local HITBOX_SIZE = _G.HitboxSize or 25
+local TARGET_VECTOR = Vector3.new(HITBOX_SIZE, HITBOX_SIZE, HITBOX_SIZE)
 -- =================================================
 
 -- === ЗАЩИТА ОТ ДУБЛИРОВАНИЯ ===
-local scriptId = "One Tap"
+local scriptId = "NoriHitboxSystem_v2"
 
--- Если старая версия запущена, посылаем сигнал на выход
 local oldSignal = LogService:FindFirstChild(scriptId)
 if oldSignal then
     oldSignal:Destroy() 
     task.wait(0.3) 
 end
 
--- Создаем новый маркер текущего скрипта
 local currentSignal = Instance.new("BindableEvent")
 currentSignal.Name = scriptId
 currentSignal.Parent = LogService
@@ -31,13 +30,12 @@ currentSignal.AncestryChanged:Connect(function()
 end)
 -- ===============================
 
--- Базовый вайтлист + тот, что ты можешь передать через _G.WhiteList
 local whiteList = {
     "nikita_031298",
     "Flamiwet"
 }
 
--- Объединяем с внешним вайтлистом, если он есть
+-- Добавляем внешние ники из лоадстринг-настроек
 if _G.WhiteList and type(_G.WhiteList) == "table" then
     for _, name in pairs(_G.WhiteList) do
         table.insert(whiteList, name)
@@ -48,7 +46,7 @@ local function isWhiteListed(playerObj, modelName)
     for _, whiteName in pairs(whiteList) do
         if modelName == whiteName then return true end
     end
-    -- Авто-вайтлист союзников по команде
+    -- Авто-вайтлист союзников
     if playerObj and playerObj:IsA("Player") and playerObj.Team == localPlayer.Team then
         return true
     end
@@ -62,6 +60,7 @@ local function removeEffects(model)
         if head:FindFirstChild("NameEsp") then head.NameEsp:Destroy() end
         head.Transparency = 0
         head.Size = Vector3.new(1.2, 1, 1)
+        head.CanCollide = true
     end
 end
 
@@ -73,8 +72,8 @@ local function globalCleanup()
         end
         if obj:IsA("Model") and obj:FindFirstChild("Head") then
             local h = obj.Head
-            -- Сбрасываем только если голова была изменена (прозрачная)
-            if h.Transparency == 1 then
+            -- Сбрасываем голову, если она явно изменена скриптом (прозрачная или огромная)
+            if h.Transparency == 1 or h.Size.Y > 2 then
                 h.Size = Vector3.new(1.2, 1, 1)
                 h.Transparency = 0
                 h.CanCollide = true
@@ -145,9 +144,8 @@ local function processModel(model)
                 displayName = "[BOT] " .. model.Name
             end
 
-            local targetSize = Vector3.new(HITBOX_SIZE, HITBOX_SIZE, HITBOX_SIZE)
-            if head.Size ~= targetSize then
-                head.Size = targetSize
+            if head.Size ~= TARGET_VECTOR then
+                head.Size = TARGET_VECTOR
                 head.Transparency = 1
                 head.CanCollide = false
                 head.Massless = true
@@ -164,11 +162,11 @@ globalCleanup()
 
 task.spawn(function()
     while isRunning do
-        -- Глубокая проверка для игроков
+        -- Проверка реальных игроков
         for _, player in pairs(Players:GetPlayers()) do
             if player.Character then processModel(player.Character) end
         end
-        -- Проверка Workspace для ботов
+        -- Проверка Workspace для NPC и тех, кто не в Players
         for _, obj in pairs(Workspace:GetChildren()) do
             processModel(obj)
         end
