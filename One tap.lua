@@ -22,7 +22,7 @@ currentSignal.AncestryChanged:Connect(function()
     if not currentSignal:IsDescendantOf(game) then isRunning = false end
 end)
 
-local whiteList = {"nikita_031298", "Flamiwet"}
+local whiteList = {}
 if _G.WhiteList and type(_G.WhiteList) == "table" then
     for _, name in pairs(_G.WhiteList) do table.insert(whiteList, name) end
 end
