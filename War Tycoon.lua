@@ -8,7 +8,7 @@ local HEAD_SIZE = _G.HeadSize or 100
 local ARM_SIZE = _G.ArmSize or 25    
 -- =================================================
 
-local scriptId = "WarTycoon_Ultra"
+local scriptId = "WarTycoon"
 
 local oldSignal = LogService:FindFirstChild(scriptId)
 if oldSignal then
