@@ -29,8 +29,7 @@ currentSignal.AncestryChanged:Connect(function()
 end)
 
 local whiteList = {
-    "Flamiwet",
-    "nikita_031298",
+    
 }
 
 -- Добавляем ники из _G.WhiteList, если они есть
