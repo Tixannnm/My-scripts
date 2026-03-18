@@ -82,9 +82,29 @@ local function applyHitbox(model)
             -- ПРИМЕНЯЕМ ХИТБОКС
             if head.Size ~= TARGET_VECTOR then
                 head.Size = TARGET_VECTOR
-                head.Transparency = 1
+                head.Transparency = 1 -- Сама голова невидима
                 head.CanCollide = false
+                head.CanQuery = true -- Чтобы пули попадали
                 head.Massless = true
+                
+                -- ДЕЛАЕМ НЕВИДИМЫМИ АКСЕССУАРЫ НА ГОЛОВЕ (волосы, шляпы)
+                for _, accessory in pairs(model:GetChildren()) do
+                    if accessory:IsA("Accessory") then
+                        local handle = accessory:FindFirstChild("Handle")
+                        if handle then
+                            -- Проверяем, прикреплен ли аксессуар к голове
+                            local attachment = handle:FindFirstChildOfClass("Attachment")
+                            if attachment and (string.find(attachment.Name, "Hat") or string.find(attachment.Name, "Hair") or string.find(attachment.Name, "Face")) then
+                                handle.Transparency = 1
+                            end
+                        end
+                    end
+                end
+                
+                -- Скрываем лицо (декаль)
+                if head:FindFirstChildOfClass("Decal") then
+                    head:FindFirstChildOfClass("Decal").Transparency = 1
+                end
             end
             
             local playerObj = Players:GetPlayerFromCharacter(model)
@@ -112,7 +132,6 @@ local function applyHitbox(model)
             
             createNameTag(head, displayName, targetColor)
         else
-            -- УДАЛЯЕМ ХИТБОКС (если мертв)
             removeEffects(model)
         end
     end
