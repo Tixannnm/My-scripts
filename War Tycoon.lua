@@ -5,7 +5,6 @@ local localPlayer = Players.LocalPlayer
 
 -- ================= [ НАСТРОЙКИ ] =================
 local HEAD_SIZE = _G.HeadSize or 100 
-local ARM_SIZE = _G.ArmSize or 25    
 -- =================================================
 
 local scriptId = "WarTycoon"
@@ -29,8 +28,11 @@ local function isWhiteListed(playerObj)
     return false
 end
 
+-- Сброс физики (теперь и для RootPart)
 local function resetPhysics(character)
     local head = character:FindFirstChild("Head")
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    
     if head then
         head.Size = Vector3.new(1.2, 1, 1)
         head.Transparency = 0
@@ -38,6 +40,11 @@ local function resetPhysics(character)
         head.CanTouch = true
         head.CanQuery = true
         head.Massless = false
+    end
+    if hrp then
+        hrp.Size = Vector3.new(2, 2, 1)
+        hrp.Transparency = 1 -- RootPart всегда прозрачный в Roblox
+        hrp.CanCollide = true
     end
 end
 
@@ -84,17 +91,32 @@ local function createHitboxEsp(part, color, size)
     box.Color3 = color
 end
 
+-- Функция настройки хитбокса (голова или рутпарт)
+local function setupHitbox(part, targetSize)
+    if part.Size ~= targetSize then
+        part.Size = targetSize
+        part.CanCollide = false
+        part.CanTouch = false
+        part.CanQuery = true
+        part.Massless = true
+        if part.Name == "Head" then part.Transparency = 1 end
+    end
+    if part.AssemblyLinearVelocity.Magnitude > 0 then
+        part.AssemblyLinearVelocity = Vector3.new(0,0,0)
+    end
+end
+
 -- Основной цикл
 task.spawn(function()
     while isRunning do
-        -- ОБРАБОТКА ИГРОКОВ
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= localPlayer and player.Character then
                 local char = player.Character
                 local head = char:FindFirstChild("Head")
+                local hrp = char:FindFirstChild("HumanoidRootPart")
                 local hum = char:FindFirstChildOfClass("Humanoid")
 
-                if head and hum and hum.Health > 0 then
+                if head and hrp and hum and hum.Health > 0 then
                     local color = player.TeamColor.Color
                     local nameText = player.Name .. " [" .. (player.Team and player.Team.Name or "No Team") .. "]"
 
@@ -104,18 +126,11 @@ task.spawn(function()
                         createNameTag(head, nameText, color)
                     else
                         local targetSize = Vector3.new(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE)
-                        if head.Size ~= targetSize then
-                            head.Size = targetSize
-                            head.Transparency = 1
-                            head.CanCollide = false
-                            head.CanTouch = false
-                            head.CanQuery = true
-                            head.Massless = true
-                            head.CastShadow = false
-                        end
-                        if head.AssemblyLinearVelocity.Magnitude > 0 then
-                            head.AssemblyLinearVelocity = Vector3.new(0,0,0)
-                        end
+                        
+                        -- Увеличиваем и Голову, и RootPart
+                        setupHitbox(head, targetSize)
+                        setupHitbox(hrp, targetSize)
+
                         createHitboxEsp(head, color)
                         createNameTag(head, nameText, color)
                     end
@@ -125,40 +140,23 @@ task.spawn(function()
             end
         end
 
-        -- ОБРАБОТКА ДРОНОВ (Исправлено)
+        -- Дроны
         local droneFolder = Workspace:FindFirstChild("Game Systems") and Workspace["Game Systems"]:FindFirstChild("Drone Workspace")
         if droneFolder then
             for _, drone in pairs(droneFolder:GetChildren()) do
-                -- Если дрон помечен как уничтоженный в атрибутах, убираем эффекты
-                if drone:GetAttribute("Destroyed") == true then
-                    removeAllEffects(drone)
-                    continue
-                end
-
-                local body = drone:FindFirstChild("Engine") or drone:FindFirstChild("Body") or drone:FindFirstChildOfClass("BasePart")
-                if body then
-                    local ownerName = drone:GetAttribute("Owner") or "Unknown"
-                    local ownerObj = Players:FindFirstChild(ownerName)
-                    
-                    local displayColor = Color3.fromRGB(255, 0, 0) -- По умолчанию красный (враг)
-                    local teamSuffix = "[No Team]"
-
-                    if ownerObj then
-                        teamSuffix = "[" .. (ownerObj.Team and ownerObj.Team.Name or "No Team") .. "]"
-                        -- Если дрон твой или союзный — меняем цвет на командный
-                        if ownerObj.Team == localPlayer.Team then
-                            displayColor = ownerObj.TeamColor.Color
-                        end
+                if drone:GetAttribute("Destroyed") ~= true then
+                    local body = drone:FindFirstChild("Engine") or drone:FindFirstChild("Body") or drone:FindFirstChildOfClass("BasePart")
+                    if body then
+                        local ownerName = drone:GetAttribute("Owner") or "Unknown"
+                        createHitboxEsp(body, Color3.fromRGB(255, 0, 0), Vector3.new(3, 3, 3))
+                        createNameTag(body, "[DRONE] " .. ownerName, Color3.fromRGB(255, 0, 0))
                     end
-
-                    createHitboxEsp(body, displayColor, Vector3.new(3, 3, 3))
-                    createNameTag(body, "[DRONE] " .. ownerName .. " " .. teamSuffix, displayColor)
                 end
             end
         end
 
         task.wait(0.2)
     end
-    -- Очистка при остановке
-    globalCleanup() 
+    -- Очистка
+    for _, player in pairs(Players:GetPlayers()) do if player.Character then removeAllEffects(player.Character) end end
 end)
