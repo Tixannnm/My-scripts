@@ -24,7 +24,10 @@ end)
 local function isWhiteListed(playerObj)
     if playerObj.Team == localPlayer.Team then return true end
     if _G.WhiteList and type(_G.WhiteList) == "table" then
-        for _, name in pairs(_G.WhiteList) do if playerObj.Name == name then return true end end
+        for _, name in pairs(_G.WhiteList) do 
+            -- Проверяем и по имени, и по дисплей-нейму для надежности
+            if playerObj.Name == name or playerObj.DisplayName == name then return true end 
+        end
     end
     return false
 end
@@ -48,6 +51,7 @@ local function removeAllEffects(model)
     end
 end
 
+-- Функция создания ника (Использует DisplayName)
 local function createNameTag(target, text, color)
     local tag = target:FindFirstChild("NameEsp")
     if tag then 
@@ -96,7 +100,8 @@ task.spawn(function()
 
                 if head and hum and hum.Health > 0 then
                     local color = player.TeamColor.Color
-                    local nameText = player.Name .. " [" .. (player.Team and player.Team.Name or "No Team") .. "]"
+                    -- ИСПОЛЬЗУЕМ DisplayName
+                    local nameText = player.DisplayName .. " [" .. (player.Team and player.Team.Name or "No Team") .. "]"
 
                     if isWhiteListed(player) then
                         resetPhysics(char)
@@ -125,11 +130,10 @@ task.spawn(function()
             end
         end
 
-        -- ОБРАБОТКА ДРОНОВ (Исправлено)
+        -- ОБРАБОТКА ДРОНОВ
         local droneFolder = Workspace:FindFirstChild("Game Systems") and Workspace["Game Systems"]:FindFirstChild("Drone Workspace")
         if droneFolder then
             for _, drone in pairs(droneFolder:GetChildren()) do
-                -- Если дрон помечен как уничтоженный в атрибутах, убираем эффекты
                 if drone:GetAttribute("Destroyed") == true then
                     removeAllEffects(drone)
                     continue
@@ -140,25 +144,22 @@ task.spawn(function()
                     local ownerName = drone:GetAttribute("Owner") or "Unknown"
                     local ownerObj = Players:FindFirstChild(ownerName)
                     
-                    local displayColor = Color3.fromRGB(255, 0, 0) -- По умолчанию красный (враг)
-                    local teamSuffix = "[No Team]"
+                    local displayColor = Color3.fromRGB(255, 0, 0)
+                    local displayNameToShow = ownerName -- Если игрок вышел, останется обычное имя
 
                     if ownerObj then
-                        teamSuffix = "[" .. (ownerObj.Team and ownerObj.Team.Name or "No Team") .. "]"
-                        -- Если дрон твой или союзный — меняем цвет на командный
+                        displayNameToShow = ownerObj.DisplayName -- Для дрона тоже берем DisplayName владельца
                         if ownerObj.Team == localPlayer.Team then
                             displayColor = ownerObj.TeamColor.Color
                         end
                     end
 
                     createHitboxEsp(body, displayColor, Vector3.new(3, 3, 3))
-                    createNameTag(body, "[DRONE] " .. ownerName .. " " .. teamSuffix, displayColor)
+                    createNameTag(body, "[DRONE] " .. displayNameToShow, displayColor)
                 end
             end
         end
 
         task.wait(0.2)
     end
-    -- Очистка при остановке
-    globalCleanup() 
 end)
