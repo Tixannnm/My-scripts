@@ -1673,7 +1673,7 @@ Alpha_43.Parent = ClosePlayers
 
 -- Scripts:
 
-local function FUXC_fake_script() -- WarTycoonbySayke.LocalScript 
+local function WTUI_fake_script() -- WarTycoonbySayke.LocalScript 
 	local script = Instance.new('LocalScript', WarTycoonbySayke)
 
 	local delta, dragInput
@@ -1715,8 +1715,8 @@ local function FUXC_fake_script() -- WarTycoonbySayke.LocalScript
 	
 	makeDraggable(script.Parent.MainFrame)
 end
-coroutine.wrap(FUXC_fake_script)()
-local function PAHMSU_fake_script() -- WarTycoonbySayke.LocalScript 
+coroutine.wrap(WTUI_fake_script)()
+local function CEXTBFH_fake_script() -- WarTycoonbySayke.LocalScript 
 	local script = Instance.new('LocalScript', WarTycoonbySayke)
 
 	game:GetService("UserInputService").InputBegan:Connect(function(kk, c)
@@ -1724,14 +1724,14 @@ local function PAHMSU_fake_script() -- WarTycoonbySayke.LocalScript
 		script.Parent.Enabled = not script.Parent.Enabled
 	end)
 end
-coroutine.wrap(PAHMSU_fake_script)()
-local function XUWZUK_fake_script() -- WarTycoonbySayke.LocalScript 
+coroutine.wrap(CEXTBFH_fake_script)()
+local function GOFCGX_fake_script() -- WarTycoonbySayke.LocalScript 
 	local script = Instance.new('LocalScript', WarTycoonbySayke)
 
 	script.Parent.Parent = game.CoreGui
 end
-coroutine.wrap(XUWZUK_fake_script)()
-local function OZWKDLN_fake_script() -- Guns.LocalScript 
+coroutine.wrap(GOFCGX_fake_script)()
+local function HJAOB_fake_script() -- Guns.LocalScript 
 	local script = Instance.new('LocalScript', Guns)
 
 	local plr = game.Players.LocalPlayer
@@ -1745,54 +1745,62 @@ local function OZWKDLN_fake_script() -- Guns.LocalScript
 		local pastpos = char:GetPivot()
 		local target = nil
 	
-		-- Ищем гивер по всей папке тайкунов
-		for _, v in ipairs(tycoons:GetDescendants()) do
-			if v.Name == weaponName or v.Name == weaponName .. " Giver" then
-				target = v
-				break
+		-- Перебираем все тайкуны на сервере
+		for _, tycoon in ipairs(tycoons:GetChildren()) do
+			local purchasedFolder = tycoon:FindFirstChild("PurchasedObjects")
+	
+			if purchasedFolder then
+				-- Ищем гивер ТОЛЬКО внутри купленных объектов этого тайкуна
+				for _, v in ipairs(purchasedFolder:GetDescendants()) do
+					-- Проверяем совпадение имени или наличие "Giver" в названии
+					if v.Name == weaponName or v.Name == weaponName .. " Giver" then
+						target = v
+						break
+					end
+				end
 			end
+			if target then break end -- Если нашли в одном тайкуне, дальше не ищем
 		end
 	
 		if target then
-			print("🚀 Лечу за: " .. weaponName)
+			print("🚀 Лечу за купленным: " .. weaponName)
 			char:PivotTo(target:GetPivot())
 			task.wait(0.5)
 	
+			-- Ищем ProximityPrompt внутри найденного объекта
 			local prompt = target:IsA("ProximityPrompt") and target or target:FindFirstChildWhichIsA("ProximityPrompt", true)
 	
 			if prompt then
-				prompt.HoldDuration = 0
-				fireproximityprompt(prompt, 7)
+				fireproximityprompt(prompt) -- В эксплоитах обычно не нужно менять HoldDuration, fire делает всё за тебя
 			end
 	
 			task.wait(0.6)
 			char:PivotTo(pastpos)
 		else
-			print("❌ Не нашел на карте: " .. weaponName)
+			print("❌ " .. weaponName .. " не куплено или не найдено в PurchasedObjects")
 		end
 	end
 	
-	-- РЕКУРСИВНАЯ ПРИВЯЗКА: Ищем все кнопки во всех под-фреймах
+	-- Привязка к кнопкам (используем GetDescendants, чтобы найти кнопки во всех вкладках)
 	for _, object in ipairs(script.Parent:GetDescendants()) do
-		-- Проверяем, что это кнопка и что это не кнопка переключения категорий (если нужно)
 		if object:IsA("TextButton") then
 			object.MouseButton1Click:Connect(function()
-				-- Скрипт берет ТЕКСТ, написанный на кнопке (например "AWP" или "RPG")
+				-- Берем текст кнопки (например, "AK47")
 				getWeapon(object.Text)
 			end)
 		end
 	end
 end
-coroutine.wrap(OZWKDLN_fake_script)()
-local function NPGXU_fake_script() -- Close.LocalScript 
+coroutine.wrap(HJAOB_fake_script)()
+local function FVHEC_fake_script() -- Close.LocalScript 
 	local script = Instance.new('LocalScript', Close)
 
 	script.Parent.MouseButton1Click:Connect(function()
 		script.Parent.Parent.Visible = false
 	end)
 end
-coroutine.wrap(NPGXU_fake_script)()
-local function BRNLFY_fake_script() -- Frame_2.LocalScript 
+coroutine.wrap(FVHEC_fake_script)()
+local function OQDOW_fake_script() -- Frame_2.LocalScript 
 	local script = Instance.new('LocalScript', Frame_2)
 
 	local mainFrame = script.Parent
@@ -1831,8 +1839,8 @@ local function BRNLFY_fake_script() -- Frame_2.LocalScript
 	-- Опционально: закрыть всё при старте, кроме первой вкладки
 	-- openTab("Teleport")
 end
-coroutine.wrap(BRNLFY_fake_script)()
-local function QHQZ_fake_script() -- Frame_3.LocalScript 
+coroutine.wrap(OQDOW_fake_script)()
+local function SIFAH_fake_script() -- Frame_3.LocalScript 
 	local script = Instance.new('LocalScript', Frame_3)
 
 	local plr = game.Players.LocalPlayer
@@ -1960,8 +1968,8 @@ local function QHQZ_fake_script() -- Frame_3.LocalScript
 		end
 	end
 end
-coroutine.wrap(QHQZ_fake_script)()
-local function EUOOLAO_fake_script() -- Teleporttoguns.LocalScript 
+coroutine.wrap(SIFAH_fake_script)()
+local function UAECIUE_fake_script() -- Teleporttoguns.LocalScript 
 	local script = Instance.new('LocalScript', Teleporttoguns)
 
 	local button = script.Parent
@@ -1975,8 +1983,8 @@ local function EUOOLAO_fake_script() -- Teleporttoguns.LocalScript
 	
 	end)
 end
-coroutine.wrap(EUOOLAO_fake_script)()
-local function XWFSW_fake_script() -- TeleporttoBases.LocalScript 
+coroutine.wrap(UAECIUE_fake_script)()
+local function EDNNTHV_fake_script() -- TeleporttoBases.LocalScript 
 	local script = Instance.new('LocalScript', TeleporttoBases)
 
 	local button = script.Parent
@@ -1990,8 +1998,8 @@ local function XWFSW_fake_script() -- TeleporttoBases.LocalScript
 	
 	end)
 end
-coroutine.wrap(XWFSW_fake_script)()
-local function IXIB_fake_script() -- TeleporttoPlayers.LocalScript 
+coroutine.wrap(EDNNTHV_fake_script)()
+local function UEHMY_fake_script() -- TeleporttoPlayers.LocalScript 
 	local script = Instance.new('LocalScript', TeleporttoPlayers)
 
 	local button = script.Parent
@@ -2005,8 +2013,8 @@ local function IXIB_fake_script() -- TeleporttoPlayers.LocalScript
 	
 	end)
 end
-coroutine.wrap(IXIB_fake_script)()
-local function RGMWUP_fake_script() -- Frame_5.LocalScript 
+coroutine.wrap(UEHMY_fake_script)()
+local function DOSE_fake_script() -- Frame_5.LocalScript 
 	local script = Instance.new('LocalScript', Frame_5)
 
 	local plr = game.Players.LocalPlayer
@@ -2058,16 +2066,16 @@ local function RGMWUP_fake_script() -- Frame_5.LocalScript
 		end
 	end
 end
-coroutine.wrap(RGMWUP_fake_script)()
-local function KTAJG_fake_script() -- CloseBases.LocalScript 
+coroutine.wrap(DOSE_fake_script)()
+local function YRFQ_fake_script() -- CloseBases.LocalScript 
 	local script = Instance.new('LocalScript', CloseBases)
 
 	script.Parent.MouseButton1Click:Connect(function()
 		script.Parent.Parent.Visible = false
 	end)
 end
-coroutine.wrap(KTAJG_fake_script)()
-local function CCUJZC_fake_script() -- Frame_6.LocalScript 
+coroutine.wrap(YRFQ_fake_script)()
+local function WBCW_fake_script() -- Frame_6.LocalScript 
 	local script = Instance.new('LocalScript', Frame_6)
 
 	local Players = game:GetService("Players")
@@ -2126,12 +2134,12 @@ local function CCUJZC_fake_script() -- Frame_6.LocalScript
 	-- 3. Вышедшие
 	Players.PlayerRemoving:Connect(removePlayerButton)
 end
-coroutine.wrap(CCUJZC_fake_script)()
-local function KIIBZL_fake_script() -- ClosePlayers.LocalScript 
+coroutine.wrap(WBCW_fake_script)()
+local function NKECJ_fake_script() -- ClosePlayers.LocalScript 
 	local script = Instance.new('LocalScript', ClosePlayers)
 
 	script.Parent.MouseButton1Click:Connect(function()
 		script.Parent.Parent.Visible = false
 	end)
 end
-coroutine.wrap(KIIBZL_fake_script)()
+coroutine.wrap(NKECJ_fake_script)()
