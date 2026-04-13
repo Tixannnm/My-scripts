@@ -39,11 +39,10 @@ local function gt(weaponName)
                         local lp = char:GetPivot()
                         char:PivotTo(promptFolder:GetPivot()) 
                         hrp.Anchored = true
-                        task.wait(0.5)
+                        task.wait(0.25)
                         hrp.Anchored = false
-                        task.wait(0.1)
                         local btn = promptFolder:FindFirstChild("Weapon Giver")
-                        if btn then fireproximityprompt(btn, 7) end
+                        if btn then btn.HoldDuration = 0 task.wait(.2) fireproximityprompt(btn, 7) end
                         task.wait(0.5)
                         char:PivotTo(lp)
                         return 
