@@ -33,7 +33,7 @@ local Settings = {
     AimbotRadius = 3000,
     TargetFilterEnabled = false,
     AllowedDrones = {},
-    ShowShootButton = true   -- ← добавлено
+    ShowShootButton = true
 }
 
 for _, droneName in ipairs(AllDroneTypes) do
@@ -42,6 +42,12 @@ end
 
 local ActiveDroneESPs = {}
 local DroneToggleButtons = {}
+
+-- ========== Определение мобильного устройства ==========
+local isMobile = UserInputService.TouchEnabled
+local MAIN_WIDTH  = isMobile and 280 or 320
+local MAIN_HEIGHT = isMobile and 420 or 520
+local SCROLL_HEIGHT = isMobile and 200 or 280
 
 ----------------------------------------------------
 -- ФУНКЦИЯ ПЛАВНОГО ПЕРЕТАСКИВАНИЯ (DRAG)
@@ -90,7 +96,7 @@ local function MakeDraggable(frame, dragHandle)
     end)
 
     return function()
-        return dragDistance > 8 -- Проверка: если двигали кнопку дальше 8 пикселей, это драг, а не клик
+        return dragDistance > 8
     end
 end
 
@@ -312,6 +318,7 @@ end
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "DroneControlHub"
 ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
 
 if gethui then
     ScreenGui.Parent = gethui()
@@ -325,8 +332,8 @@ end
 -- КНОПКА HUB
 local MenuToggleFrame = Instance.new("Frame")
 MenuToggleFrame.Name = "MenuToggleFrame"
-MenuToggleFrame.Size = UDim2.new(0, 80, 0, 32)
-MenuToggleFrame.Position = UDim2.new(0.02, 0, 0.2, 0)
+MenuToggleFrame.Size = UDim2.new(0, isMobile and 70 or 80, 0, isMobile and 28 or 32)
+MenuToggleFrame.Position = UDim2.new(0.02, 0, 0.15, 0)
 MenuToggleFrame.BackgroundColor3 = Color3.fromRGB(35, 38, 45)
 MenuToggleFrame.Active = true
 MenuToggleFrame.Parent = ScreenGui
@@ -339,21 +346,21 @@ ToggleBtn.Size = UDim2.new(1, 0, 1, 0)
 ToggleBtn.BackgroundTransparency = 1
 ToggleBtn.Text = "☰ HUB"
 ToggleBtn.TextColor3 = Color3.fromRGB(0, 220, 130)
-ToggleBtn.TextSize = 12
+ToggleBtn.TextSize = isMobile and 11 or 12
 ToggleBtn.Font = Enum.Font.GothamBold
 ToggleBtn.Parent = MenuToggleFrame
 
 MakeDraggable(MenuToggleFrame, ToggleBtn)
 
--- КНОПКА SHOOT (ПЕРЕДВИГАЕМАЯ)
+-- КНОПКА SHOOT
 local ShootFrame = Instance.new("Frame")
 ShootFrame.Name = "ShootFrame"
-ShootFrame.Size = UDim2.new(0, 65, 0, 65)
-ShootFrame.Position = UDim2.new(0.85, -32, 0.5, -32)
+ShootFrame.Size = UDim2.new(0, isMobile and 58 or 65, 0, isMobile and 58 or 65)
+ShootFrame.Position = UDim2.new(0.88, -29, 0.55, -29)
 ShootFrame.BackgroundColor3 = Color3.fromRGB(25, 27, 32)
 ShootFrame.BorderSizePixel = 0
 ShootFrame.Active = true
-ShootFrame.Visible = Settings.ShowShootButton  -- ← добавлено
+ShootFrame.Visible = Settings.ShowShootButton
 ShootFrame.Parent = ScreenGui
 
 local ShootCorner = Instance.new("UICorner", ShootFrame)
@@ -369,16 +376,15 @@ ShootBtn.Size = UDim2.new(1, 0, 1, 0)
 ShootBtn.BackgroundTransparency = 1
 ShootBtn.Text = "SHOOT"
 ShootBtn.TextColor3 = Color3.fromRGB(0, 220, 130)
-ShootBtn.TextSize = 13
+ShootBtn.TextSize = isMobile and 12 or 13
 ShootBtn.Font = Enum.Font.GothamBold
 ShootBtn.Parent = ShootFrame
 
--- Включаем перетаскивание для кнопки SHOOT
 local wasShootDragged = MakeDraggable(ShootFrame, ShootBtn)
 
 local isFiring = false
 ShootBtn.MouseButton1Click:Connect(function()
-    if wasShootDragged() then return end -- Не стреляем, если кнопку перетаскивали
+    if wasShootDragged() then return end
     if isFiring then return end
     isFiring = true
     ShootBtn.Text = "WAIT..."
@@ -396,8 +402,8 @@ end)
 -- ОСНОВНОЕ ОКНО
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 520)
-MainFrame.Position = UDim2.new(0.5, -160, 0.2, 0)
+MainFrame.Size = UDim2.new(0, MAIN_WIDTH, 0, MAIN_HEIGHT)
+MainFrame.Position = UDim2.new(0.5, -MAIN_WIDTH/2, 0.5, -MAIN_HEIGHT/2)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 27, 32)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -413,7 +419,7 @@ Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
 Title.Text = "DRONE CONTROL HUB"
 Title.TextColor3 = Color3.fromRGB(240, 240, 240)
-Title.TextSize = 14
+Title.TextSize = isMobile and 13 or 14
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = MainFrame
@@ -440,7 +446,7 @@ CloseBtn.TextSize = 14
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.Parent = MainFrame
 
--- ПАНЕЛЬ ВКЛАДОК (TABS)
+-- ПАНЕЛЬ ВКЛАДОК
 local TabBar = Instance.new("Frame")
 TabBar.Name = "TabBar"
 TabBar.Size = UDim2.new(1, -20, 0, 30)
@@ -471,7 +477,7 @@ ExploitTabBtn.TextSize = 12
 ExploitTabBtn.Font = Enum.Font.GothamBold
 ExploitTabBtn.Parent = TabBar
 
--- КОНТЕЙНЕРЫ ДЛЯ ВКЛАДОК
+-- КОНТЕЙНЕРЫ
 local MainContainer = Instance.new("Frame")
 MainContainer.Name = "MainContainer"
 MainContainer.Size = UDim2.new(1, -20, 1, -80)
@@ -482,7 +488,7 @@ MainContainer.Parent = MainFrame
 
 local MainUIList = Instance.new("UIListLayout", MainContainer)
 MainUIList.SortOrder = Enum.SortOrder.LayoutOrder
-MainUIList.Padding = UDim.new(0, 8)
+MainUIList.Padding = UDim.new(0, isMobile and 6 or 8)
 
 local ExploitContainer = Instance.new("Frame")
 ExploitContainer.Name = "ExploitContainer"
@@ -494,7 +500,7 @@ ExploitContainer.Parent = MainFrame
 
 local ExploitUIList = Instance.new("UIListLayout", ExploitContainer)
 ExploitUIList.SortOrder = Enum.SortOrder.LayoutOrder
-ExploitUIList.Padding = UDim.new(0, 8)
+ExploitUIList.Padding = UDim.new(0, isMobile and 6 or 8)
 
 local function SwitchTab(tabName)
     if tabName == "Main" then
@@ -529,9 +535,9 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     ExploitContainer.Visible = not isCollapsed and (ExploitTabBtn.TextColor3 == Color3.fromRGB(0, 220, 130))
     
     if isCollapsed then
-        MainFrame.Size = UDim2.new(0, 320, 0, 36)
+        MainFrame.Size = UDim2.new(0, MAIN_WIDTH, 0, 36)
     else
-        MainFrame.Size = UDim2.new(0, 320, 0, 520)
+        MainFrame.Size = UDim2.new(0, MAIN_WIDTH, 0, MAIN_HEIGHT)
     end
 end)
 
@@ -541,7 +547,7 @@ end)
 
 local function CreateActionButton(parent, btnText, callback)
     local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(1, 0, 0, 36)
+    Frame.Size = UDim2.new(1, 0, 0, isMobile and 32 or 36)
     Frame.BackgroundColor3 = Color3.fromRGB(35, 38, 45)
     Frame.Parent = parent
 
@@ -553,7 +559,7 @@ local function CreateActionButton(parent, btnText, callback)
     Button.BackgroundTransparency = 1
     Button.Text = btnText
     Button.TextColor3 = Color3.fromRGB(0, 220, 130)
-    Button.TextSize = 12
+    Button.TextSize = isMobile and 11 or 12
     Button.Font = Enum.Font.GothamBold
     Button.Parent = Frame
 
@@ -563,7 +569,7 @@ end
 
 local function CreateToggle(parent, name, defaultState, callback)
     local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(1, 0, 0, 36)
+    Frame.Size = UDim2.new(1, 0, 0, isMobile and 32 or 36)
     Frame.BackgroundColor3 = Color3.fromRGB(35, 38, 45)
     Frame.Parent = parent
     
@@ -576,7 +582,7 @@ local function CreateToggle(parent, name, defaultState, callback)
     Label.BackgroundTransparency = 1
     Label.Text = name
     Label.TextColor3 = Color3.fromRGB(210, 210, 210)
-    Label.TextSize = 12
+    Label.TextSize = isMobile and 11 or 12
     Label.Font = Enum.Font.GothamMedium
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = Frame
@@ -606,7 +612,7 @@ end
 
 local function CreateInput(parent, labelTitle, defaultValue, callback)
     local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(1, 0, 0, 36)
+    Frame.Size = UDim2.new(1, 0, 0, isMobile and 32 or 36)
     Frame.BackgroundColor3 = Color3.fromRGB(35, 38, 45)
     Frame.Parent = parent
 
@@ -619,7 +625,7 @@ local function CreateInput(parent, labelTitle, defaultValue, callback)
     Label.BackgroundTransparency = 1
     Label.Text = labelTitle
     Label.TextColor3 = Color3.fromRGB(210, 210, 210)
-    Label.TextSize = 12
+    Label.TextSize = isMobile and 11 or 12
     Label.Font = Enum.Font.GothamMedium
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = Frame
@@ -630,7 +636,7 @@ local function CreateInput(parent, labelTitle, defaultValue, callback)
     TextBox.BackgroundColor3 = Color3.fromRGB(48, 52, 60)
     TextBox.Text = tostring(defaultValue)
     TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TextBox.TextSize = 12
+    TextBox.TextSize = isMobile and 11 or 12
     TextBox.Font = Enum.Font.Gotham
     TextBox.Parent = Frame
 
@@ -645,7 +651,7 @@ end
 
 local function CreateKeybind(parent, labelTitle, defaultKey, callback)
     local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(1, 0, 0, 36)
+    Frame.Size = UDim2.new(1, 0, 0, isMobile and 32 or 36)
     Frame.BackgroundColor3 = Color3.fromRGB(35, 38, 45)
     Frame.Parent = parent
 
@@ -658,7 +664,7 @@ local function CreateKeybind(parent, labelTitle, defaultKey, callback)
     Label.BackgroundTransparency = 1
     Label.Text = labelTitle
     Label.TextColor3 = Color3.fromRGB(210, 210, 210)
-    Label.TextSize = 12
+    Label.TextSize = isMobile and 11 or 12
     Label.Font = Enum.Font.GothamMedium
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = Frame
@@ -776,7 +782,6 @@ CreateToggle(ExploitContainer, "Enable Target Filter", Settings.TargetFilterEnab
     Settings.TargetFilterEnabled = v
 end)
 
--- ↓↓↓ Новый переключатель ↓↓↓
 CreateToggle(ExploitContainer, "Show SHOOT Button", Settings.ShowShootButton, function(v)
     Settings.ShowShootButton = v
     ShootFrame.Visible = v
@@ -814,7 +819,7 @@ DeselectAllCorner.CornerRadius = UDim.new(0, 4)
 
 local DroneScroll = Instance.new("ScrollingFrame")
 DroneScroll.Name = "DroneScroll"
-DroneScroll.Size = UDim2.new(1, 0, 0, 280)
+DroneScroll.Size = UDim2.new(1, 0, 0, SCROLL_HEIGHT)
 DroneScroll.BackgroundColor3 = Color3.fromRGB(20, 22, 26)
 DroneScroll.BorderSizePixel = 0
 DroneScroll.ScrollBarThickness = 4
@@ -834,7 +839,7 @@ end)
 
 for _, droneName in ipairs(AllDroneTypes) do
     local ItemFrame = Instance.new("Frame")
-    ItemFrame.Size = UDim2.new(1, -8, 0, 32)
+    ItemFrame.Size = UDim2.new(1, -8, 0, isMobile and 28 or 32)
     ItemFrame.BackgroundColor3 = Color3.fromRGB(30, 33, 40)
     ItemFrame.Parent = DroneScroll
 
@@ -847,7 +852,7 @@ for _, droneName in ipairs(AllDroneTypes) do
     ItemLabel.BackgroundTransparency = 1
     ItemLabel.Text = droneName
     ItemLabel.TextColor3 = Color3.fromRGB(210, 210, 210)
-    ItemLabel.TextSize = 11
+    ItemLabel.TextSize = isMobile and 10 or 11
     ItemLabel.Font = Enum.Font.GothamMedium
     ItemLabel.TextXAlignment = Enum.TextXAlignment.Left
     ItemLabel.Parent = ItemFrame
