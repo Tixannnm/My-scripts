@@ -6,26 +6,37 @@ local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 local DroneFolder = workspace:WaitForChild("Drones"):WaitForChild("SpawnedDrones")
 
--- Константа исключения для функции подрыва
-local TARGET_USER_ID = 4288295123
+-- Список игнорируемых ID (белый список)
+local IgnoredUsers = {
+    [4288295123] = true,
+    [2507631272] = true
+}
 
--- Флаги состояний и настройки
+-- Настройки
 local Settings = {
     TargetName = "iran",
-    BehindOffset = 5,   -- Дистанция за спину (в блоках)
-    HeightOffset = 3,   -- Высота над/под игроком (в блоках)
+    BehindOffset = 5,
+    HeightOffset = 3,
     DroneESP = false,
     PlayerESPFromDrone = false,
     AutoExplodeDrones = false,
     ToggleKey = Enum.KeyCode.Delete
 }
 
--- Таблицы для отслеживания существующих меток ESP
 local ActiveDroneESPs = {}
 
 ----------------------------------------------------
 -- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 ----------------------------------------------------
+
+local function IsIgnoredUser(ownerId)
+    local parsedId = tonumber(ownerId)
+    if not parsedId then return false end
+    if parsedId == LocalPlayer.UserId or IgnoredUsers[parsedId] then
+        return true
+    end
+    return false
+end
 
 local function GetDronePosition(drone)
     if not drone or not drone.Parent then return nil end
@@ -44,12 +55,11 @@ local function GetDroneAdornee(drone)
     return nil
 end
 
--- Поиск твоего дрона
 local function GetMyDrone()
     for _, drone in ipairs(DroneFolder:GetChildren()) do
         local ownerId = drone:GetAttribute("OwnerUserId") or drone:GetAttribute("Owner") or drone:GetAttribute("PlayerId")
         
-        if ownerId == LocalPlayer.UserId or ownerId == 2507631272 or tostring(ownerId) == tostring(LocalPlayer.UserId) then
+        if ownerId == LocalPlayer.UserId or tostring(ownerId) == tostring(LocalPlayer.UserId) then
             return drone
         end
         
@@ -60,7 +70,6 @@ local function GetMyDrone()
     return nil
 end
 
--- Функция подрыва всех чужих дронов
 local function ExplodeEnemyDrones()
     local char = LocalPlayer.Character
     local rootPart = char and char:FindFirstChild("HumanoidRootPart")
@@ -68,26 +77,23 @@ local function ExplodeEnemyDrones()
 
     for _, droneModel in ipairs(DroneFolder:GetChildren()) do
         if droneModel:IsA("Model") then
-            local ownerId = droneModel:GetAttribute("OwnerUserId") or droneModel:GetAttribute("Owner")
-            local parsedOwnerId = tonumber(ownerId)
+            local ownerId = droneModel:GetAttribute("OwnerUserId") or droneModel:GetAttribute("Owner") or droneModel:GetAttribute("PlayerId")
             
-            -- Пропускаем сохраненных юзеров (TARGET_USER_ID, 2507631272) и самого себя
-            if parsedOwnerId == TARGET_USER_ID or parsedOwnerId == LocalPlayer.UserId or parsedOwnerId == 2507631272 then
+            -- Проверка на белый список и свой дрон
+            if IsIgnoredUser(ownerId) then
                 continue
             end
 
-            for _, child in ipairs(droneModel:GetChildren()) do
-                local body = child:FindFirstChild("Body")
-                if body then
-                    firetouchinterest(rootPart, body, 0)
-                    firetouchinterest(rootPart, body, 1)
+            for _, child in ipairs(droneModel:GetDescendants()) do
+                if child:IsA("BasePart") then
+                    firetouchinterest(rootPart, child, 0)
+                    firetouchinterest(rootPart, child, 1)
                 end
             end
         end
     end
 end
 
--- Функция для разовой телепортации
 local function TeleportDroneOnce()
     local myDrone = GetMyDrone()
     if not myDrone then return end
@@ -112,6 +118,104 @@ local function TeleportDroneOnce()
     end
 end
 
+-- Авто-сбивание всех чужих дронов (кроме белого списка)
+local function AutoShootClosestDrone()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local rootPart = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChildWhichIsA("BasePart")
+    if not rootPart then return end
+
+    local tool = char:FindFirstChild("AK74") or LocalPlayer.Backpack:FindFirstChild("AK74")
+    if not tool or not tool:FindFirstChild("FireEvent") then
+        for _, item in ipairs(char:GetChildren()) do
+            if item:IsA("Tool") and item:FindFirstChild("FireEvent") then
+                tool = item
+                break
+            end
+        end
+        if not tool then
+            for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
+                if item:IsA("Tool") and item:FindFirstChild("FireEvent") then
+                    tool = item
+                    break
+                end
+            end
+        end
+    end
+
+    if not tool or not tool:FindFirstChild("FireEvent") then
+        warn("Оружие с FireEvent не найдено!")
+        return
+    end
+
+    local closestPart = nil
+    local shortestDistance = math.huge
+
+    for _, drone in ipairs(DroneFolder:GetChildren()) do
+        if drone:IsA("Model") or drone:IsA("BasePart") then
+            local ownerId = drone:GetAttribute("OwnerUserId") or drone:GetAttribute("Owner") or drone:GetAttribute("PlayerId")
+
+            -- Проверка на белый список и свой дрон
+            if IsIgnoredUser(ownerId) then
+                continue
+            end
+
+            local targetPart = drone:FindFirstChild("Body", true)
+            if not targetPart or not targetPart:IsA("BasePart") then
+                if drone:IsA("Model") then
+                    targetPart = drone.PrimaryPart or drone:FindFirstChildWhichIsA("BasePart", true)
+                elseif drone:IsA("BasePart") then
+                    targetPart = drone
+                end
+            end
+
+            if targetPart then
+                local dist = (targetPart.Position - rootPart.Position).Magnitude
+                if dist < shortestDistance then
+                    shortestDistance = dist
+                    closestPart = targetPart
+                end
+            end
+        end
+    end
+
+    if closestPart then
+        local targetPosition = closestPart.Position
+        local dynamicDelay = math.clamp(shortestDistance / 2500, 0.01, 0.15)
+
+        local originalParent = tool.Parent
+        if originalParent == LocalPlayer.Backpack then
+            tool.Parent = char
+        end
+
+        local Event = tool:FindFirstChild("FireEvent")
+        if Event then
+            Event:FireServer({
+                isAiming = false,
+                action = "start",
+                aim = targetPosition
+            })
+
+            task.wait(dynamicDelay)
+
+            Event:FireServer({
+                isAiming = false,
+                action = "stop",
+                aim = targetPosition
+            })
+        end
+
+        if rootPart and firetouchinterest then
+            local droneModel = closestPart:FindFirstAncestorOfClass("Model") or closestPart
+            for _, part in ipairs(droneModel:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    firetouchinterest(rootPart, part, 0)
+                    firetouchinterest(rootPart, part, 1)
+                end
+            end
+        end
+    end
+end
+
 ----------------------------------------------------
 -- СОЗДАНИЕ GUI ИНТЕРФЕЙСА
 ----------------------------------------------------
@@ -129,6 +233,73 @@ else
     ScreenGui.Parent = CoreGui
 end
 
+-- КНОПКА HUB
+local MenuToggleFrame = Instance.new("Frame")
+MenuToggleFrame.Name = "MenuToggleFrame"
+MenuToggleFrame.Size = UDim2.new(0, 80, 0, 32)
+MenuToggleFrame.Position = UDim2.new(0.02, 0, 0.2, 0)
+MenuToggleFrame.BackgroundColor3 = Color3.fromRGB(35, 38, 45)
+MenuToggleFrame.Active = true
+MenuToggleFrame.Draggable = true
+MenuToggleFrame.Parent = ScreenGui
+
+local ToggleCorner = Instance.new("UICorner", MenuToggleFrame)
+ToggleCorner.CornerRadius = UDim.new(0, 6)
+
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(1, 0, 1, 0)
+ToggleBtn.BackgroundTransparency = 1
+ToggleBtn.Text = "☰ HUB"
+ToggleBtn.TextColor3 = Color3.fromRGB(0, 220, 130)
+ToggleBtn.TextSize = 12
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Parent = MenuToggleFrame
+
+-- КНОПКА SHOOT
+local ShootFrame = Instance.new("Frame")
+ShootFrame.Name = "ShootFrame"
+ShootFrame.Size = UDim2.new(0, 65, 0, 65)
+ShootFrame.Position = UDim2.new(0.85, -32, 0.5, -32)
+ShootFrame.BackgroundColor3 = Color3.fromRGB(25, 27, 32)
+ShootFrame.BorderSizePixel = 0
+ShootFrame.Active = true
+ShootFrame.Draggable = true
+ShootFrame.Parent = ScreenGui
+
+local ShootCorner = Instance.new("UICorner", ShootFrame)
+ShootCorner.CornerRadius = UDim.new(0, 14)
+
+local ShootStroke = Instance.new("UIStroke", ShootFrame)
+ShootStroke.Color = Color3.fromRGB(0, 220, 130)
+ShootStroke.Thickness = 2
+ShootStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+local ShootBtn = Instance.new("TextButton")
+ShootBtn.Size = UDim2.new(1, 0, 1, 0)
+ShootBtn.BackgroundTransparency = 1
+ShootBtn.Text = "SHOOT"
+ShootBtn.TextColor3 = Color3.fromRGB(0, 220, 130)
+ShootBtn.TextSize = 13
+ShootBtn.Font = Enum.Font.GothamBold
+ShootBtn.Parent = ShootFrame
+
+local isFiring = false
+ShootBtn.MouseButton1Click:Connect(function()
+    if isFiring then return end
+    isFiring = true
+    ShootBtn.Text = "WAIT..."
+    ShootBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+
+    task.spawn(function()
+        AutoShootClosestDrone()
+        task.wait(0.1)
+        ShootBtn.Text = "SHOOT"
+        ShootBtn.TextColor3 = Color3.fromRGB(0, 220, 130)
+        isFiring = false
+    end)
+end)
+
+-- ОСНОВНОЕ ОКНО
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 320, 0, 480)
@@ -137,24 +308,33 @@ MainFrame.BackgroundColor3 = Color3.fromRGB(25, 27, 32)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
+MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner", MainFrame)
 UICorner.CornerRadius = UDim.new(0, 8)
 
--- Заголовок
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -40, 0, 40)
+Title.Size = UDim2.new(1, -75, 0, 40)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
 Title.Text = "DRONE CONTROL HUB"
 Title.TextColor3 = Color3.fromRGB(240, 240, 240)
-Title.TextSize = 16
+Title.TextSize = 15
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = MainFrame
 
--- Кнопка закрытия
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
+MinimizeBtn.Position = UDim2.new(1, -65, 0, 5)
+MinimizeBtn.BackgroundTransparency = 1
+MinimizeBtn.Text = "—"
+MinimizeBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+MinimizeBtn.TextSize = 14
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.Parent = MainFrame
+
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
 CloseBtn.Position = UDim2.new(1, -35, 0, 5)
@@ -164,10 +344,6 @@ CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
 CloseBtn.TextSize = 14
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.Parent = MainFrame
-
-CloseBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
 
 local Container = Instance.new("Frame")
 Container.Size = UDim2.new(1, -20, 1, -50)
@@ -179,7 +355,25 @@ local UIList = Instance.new("UIListLayout", Container)
 UIList.SortOrder = Enum.SortOrder.LayoutOrder
 UIList.Padding = UDim.new(0, 8)
 
--- Создание кнопки
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+local isCollapsed = false
+MinimizeBtn.MouseButton1Click:Connect(function()
+    isCollapsed = not isCollapsed
+    Container.Visible = not isCollapsed
+    if isCollapsed then
+        MainFrame.Size = UDim2.new(0, 320, 0, 40)
+    else
+        MainFrame.Size = UDim2.new(0, 320, 0, 480)
+    end
+end)
+
 local function CreateActionButton(btnText, callback)
     local Frame = Instance.new("Frame")
     Frame.Size = UDim2.new(1, 0, 0, 38)
@@ -201,7 +395,6 @@ local function CreateActionButton(btnText, callback)
     Button.MouseButton1Click:Connect(callback)
 end
 
--- Создание переключателя (Toggle)
 local function CreateToggle(name, defaultState, callback)
     local Frame = Instance.new("Frame")
     Frame.Size = UDim2.new(1, 0, 0, 38)
@@ -244,7 +437,6 @@ local function CreateToggle(name, defaultState, callback)
     end)
 end
 
--- Создание текстового поля
 local function CreateInput(labelTitle, defaultValue, callback)
     local Frame = Instance.new("Frame")
     Frame.Size = UDim2.new(1, 0, 0, 38)
@@ -283,7 +475,6 @@ local function CreateInput(labelTitle, defaultValue, callback)
     end)
 end
 
--- Создание выбора клавиши (Keybind)
 local function CreateKeybind(labelTitle, defaultKey, callback)
     local Frame = Instance.new("Frame")
     Frame.Size = UDim2.new(1, 0, 0, 38)
@@ -343,7 +534,6 @@ local function CreateKeybind(labelTitle, defaultKey, callback)
     end)
 end
 
--- Очистить весь Drone ESP
 local function ClearAllDroneESP()
     for drone, esp in pairs(ActiveDroneESPs) do
         if esp and esp.Parent then
@@ -401,7 +591,6 @@ CreateToggle("Drone ESP (Green)", Settings.DroneESP, function(v)
     end
 end)
 
--- Динамическая горячая клавиша сворачивания
 UserInputService.InputBegan:Connect(function(input, gpe)
     if not gpe and input.UserInputType == Enum.UserInputType.Keyboard then
         if input.KeyCode == Settings.ToggleKey then
@@ -485,7 +674,6 @@ for _, player in ipairs(Players:GetPlayers()) do
 end
 Players.PlayerAdded:Connect(SetupPlayerESP)
 
--- Очистка меток при физическом удалении дронов из игры
 DroneFolder.ChildRemoved:Connect(function(child)
     if ActiveDroneESPs[child] then
         if ActiveDroneESPs[child].Parent then
@@ -505,14 +693,10 @@ RunService.RenderStepped:Connect(function()
     local myDrone = GetMyDrone()
     local myDronePos = GetDronePosition(myDrone)
 
-    -- Автоподрыв дронов
     if Settings.AutoExplodeDrones then
         ExplodeEnemyDrones()
     end
 
-    ----------------------------------------------------
-    -- 1. ESP ИГРОКОВ (ОТ ДРОНА)
-    ----------------------------------------------------
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
             local head = player.Character:FindFirstChild("Head")
@@ -537,9 +721,6 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    ----------------------------------------------------
-    -- 2. ESP ДРОНОВ
-    ----------------------------------------------------
     if Settings.DroneESP then
         for drone, esp in pairs(ActiveDroneESPs) do
             if not drone or not drone.Parent or not drone:IsDescendantOf(DroneFolder) then
