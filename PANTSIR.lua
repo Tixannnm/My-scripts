@@ -32,7 +32,8 @@ local Settings = {
     ToggleKey = Enum.KeyCode.Delete,
     AimbotRadius = 3000,
     TargetFilterEnabled = false,
-    AllowedDrones = {}
+    AllowedDrones = {},
+    ShowShootButton = true   -- ← добавлено
 }
 
 for _, droneName in ipairs(AllDroneTypes) do
@@ -352,6 +353,7 @@ ShootFrame.Position = UDim2.new(0.85, -32, 0.5, -32)
 ShootFrame.BackgroundColor3 = Color3.fromRGB(25, 27, 32)
 ShootFrame.BorderSizePixel = 0
 ShootFrame.Active = true
+ShootFrame.Visible = Settings.ShowShootButton  -- ← добавлено
 ShootFrame.Parent = ScreenGui
 
 local ShootCorner = Instance.new("UICorner", ShootFrame)
@@ -772,6 +774,12 @@ end)
 
 CreateToggle(ExploitContainer, "Enable Target Filter", Settings.TargetFilterEnabled, function(v)
     Settings.TargetFilterEnabled = v
+end)
+
+-- ↓↓↓ Новый переключатель ↓↓↓
+CreateToggle(ExploitContainer, "Show SHOOT Button", Settings.ShowShootButton, function(v)
+    Settings.ShowShootButton = v
+    ShootFrame.Visible = v
 end)
 
 local SelectAllFrame = Instance.new("Frame")
